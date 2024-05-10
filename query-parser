@@ -1,0 +1,76 @@
+public class QueryParser {
+
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+    public static Predicate<String> parse(String jsonQuery) {
+        try {
+            JsonNode root = mapper.readTree(jsonQuery);
+            return parseNode(root);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return s -> false; // Return a default predicate if parsing fails
+        }
+    }
+
+    private static Predicate<String> parseNode(JsonNode node) {
+        if (node.isObject()) {
+            if (node.has("$and")) {
+                return parseAnd(node.get("$and"));
+            } else if (node.has("$or")) {
+                return parseOr(node.get("$or"));
+            } else if (node.has("$not")) {
+                return parseNot(node.get("$not"));
+            } else if (node.has("$in")) {
+                return parseIn(node.get("$in"));
+            }
+        } else if (node.isTextual()) {
+            String value = node.asText();
+            return s -> s.equals(value);
+        }
+        return s -> false; // Return a default predicate if node is not recognized
+    }
+
+    private static Predicate<String> parseAnd(JsonNode node) {
+        List<Predicate<String>> predicates = new ArrayList<>();
+        for (JsonNode child : node) {
+            predicates.add(parseNode(child));
+        }
+        return predicates.stream().reduce(x -> true, Predicate::and);
+    }
+
+    private static Predicate<String> parseOr(JsonNode node) {
+        List<Predicate<String>> predicates = new ArrayList<>();
+        for (JsonNode child : node) {
+            predicates.add(parseNode(child));
+        }
+        return predicates.stream().reduce(x -> false, Predicate::or);
+    }
+
+    private static Predicate<String> parseNot(JsonNode node) {
+        Predicate<String> predicate = parseNode(node);
+        return predicate.negate();
+    }
+
+    private static Predicate<String> parseIn(JsonNode node) {
+        List<String> values = new ArrayList<>();
+        for (JsonNode child : node) {
+            values.add(child.asText());
+        }
+        return s -> values.contains(s);
+    }
+
+    public static void main(String[] args) {
+        // Example usage
+        String jsonQuery = "{\"$and\":[{\"$or\":[\"a\",\"b\"]},\"c\",{\"$not\":\"d\"},{\"$in\":[\"e\",\"f\",\"g\"]}]}";
+        Predicate<String> predicate = parse(jsonQuery);
+
+        System.out.println(predicate.test("a")); // true
+        System.out.println(predicate.test("b")); // true
+        System.out.println(predicate.test("c")); // true
+        System.out.println(predicate.test("d")); // false
+        System.out.println(predicate.test("e")); // true
+        System.out.println(predicate.test("f")); // true
+        System.out.println(predicate.test("g")); // true
+        System.out.println(predicate.test("h")); // false
+    }
+}
