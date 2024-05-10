@@ -81,6 +81,60 @@ public class QueryParser {
 
 
 
+    public static void main(String[] args) {
+        System.out.println("Hello world!");
+        try {
+            JsonNode jsonQuery = readJsonFromFile("/input.json");
+            Predicate<String> predicate = parse(String.valueOf(jsonQuery));
+
+            System.out.println(predicate.test("value1")); // true
+            System.out.println(predicate.test("value2")); // true
+            System.out.println(predicate.test("value3")); // false
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static JsonNode readJsonFromFile(String filePath) throws IOException {
+        // Create an ObjectMapper instance
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Read the JSON file as an InputStream
+        InputStream inputStream = Main.class.getResourceAsStream(filePath);
+
+        // Parse the JSON object from the InputStream
+        JsonNode jsonObject = mapper.readTree(inputStream);
+
+        // Close the InputStream
+        if (inputStream != null) {
+            inputStream.close();
+        }
+
+        // Return the JSON object
+        return jsonObject;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
